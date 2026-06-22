@@ -1,19 +1,46 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Sidebar from './components/Sidebar'
 import MessageList from './components/MessageList'
 import ChatInput from './components/ChatInput'
-import { generateId, fetchAIResponse } from './chatData'
+import AuthScreen from './components/AuthScreen'
+import SettingsPanel from './components/SettingsPanel'
+import { fetchAIResponse } from './chatData'
+import { getSession, logout } from './utils/auth'
+import { getSettings, applySettings } from './utils/settings'
 import type { Chat, Message } from './chatData'
+import type { ThemeSettings } from './utils/settings'
+
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 15)
+}
 
 function App() {
+  const [user, setUser] = useState<{ name: string; email: string } | null>(getSession())
   const [chats, setChats] = useState<Chat[]>([])
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settings, setSettings] = useState<ThemeSettings>(getSettings)
+
+  useEffect(() => {
+    applySettings(settings)
+  }, [])
 
   const activeChat = chats.find(c => c.id === activeChatId)
   const messages = activeChat?.messages ?? []
+
+  const handleAuth = (name: string) => {
+    setUser({ name, email: '' })
+  }
+
+  const handleLogout = () => {
+    logout()
+    setUser(null)
+    setChats([])
+    setActiveChatId(null)
+  }
 
   const handleNewChat = useCallback(() => {
     const newChat: Chat = {
@@ -71,31 +98,27 @@ function App() {
     setError(null)
 
     try {
-      setChats(prev => {
-        const chat = prev.find(c => c.id === currentChatId)
-        if (!chat) return prev
-        return prev
-      })
-
       const currentMessages = chats.find(c => c.id === currentChatId)?.messages ?? []
       const allMessages = [...currentMessages, userMsg]
-
       const reply = await fetchAIResponse(allMessages)
-
       const aiMsg: Message = { id: generateId(), role: 'assistant', content: reply }
 
       setChats(prev => prev.map(c =>
         c.id === currentChatId ? { ...c, messages: [...c.messages, aiMsg] } : c
       ))
     } catch {
-      setError('Failed to get response. The model may be loading — try again in a moment.')
+      setError('Failed to get response. Please try again.')
     } finally {
       setIsLoading(false)
     }
   }, [activeChatId, chats])
 
+  if (!user) {
+    return <AuthScreen onAuth={handleAuth} />
+  }
+
   return (
-    <div className="h-screen flex bg-[#212121]">
+    <div className="h-screen flex bg-[#171717]">
       <Sidebar
         chats={chats}
         activeChatId={activeChatId}
@@ -104,35 +127,44 @@ function App() {
         onDeleteChat={handleDeleteChat}
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onLogout={handleLogout}
+        userName={user.name}
       />
 
-      <main className="flex-1 flex flex-col h-full ml-0 md:ml-0 transition-all">
-        <header className="flex items-center gap-3 px-4 py-3 border-b border-[#2f2f2f] shrink-0">
+      <SettingsPanel
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onSettingsChange={(s) => { setSettings(s); applySettings(s) }}
+      />
+
+      <main className="flex-1 flex flex-col h-full transition-all">
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-[#2a2a2a] shrink-0">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-lg hover:bg-[#2f2f2f] transition-colors text-[#b4b4b4]"
+            className="p-2 rounded-xl hover:bg-[#2a2a2a] transition-colors text-[#888]"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <span className="text-base font-medium text-[#ececec]">
+          <span className="text-base font-medium text-white">
             {activeChat?.title ?? 'Nexus AI'}
           </span>
           {isLoading && (
-            <span className="text-xs text-[#888] ml-2 animate-pulse">Thinking...</span>
+            <span className="text-xs ml-2 animate-pulse" style={{ color: 'var(--primary)' }}>Thinking...</span>
           )}
         </header>
 
         {error && (
-          <div className="mx-4 mt-2 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">
+          <div className="mx-4 mt-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">
             {error}
           </div>
         )}
 
         <MessageList messages={messages} isLoading={isLoading} />
 
-        <ChatInput onSend={handleSend} isLoading={isLoading} />
+        <ChatInput onSend={handleSend} isLoading={isLoading} settings={settings} />
       </main>
     </div>
   )

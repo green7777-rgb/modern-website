@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
+import type { ThemeSettings } from '../utils/settings'
 
 interface ChatInputProps {
   onSend: (message: string) => void
   isLoading: boolean
+  settings: ThemeSettings
 }
 
-export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
+export default function ChatInput({ onSend, isLoading, settings }: ChatInputProps) {
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -23,7 +25,7 @@ export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (settings.sendOnEnter && e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSubmit()
     }
@@ -31,7 +33,7 @@ export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4 pb-6">
-      <div className="relative bg-[#303030] rounded-3xl border border-[#424242] focus-within:border-[#666] transition-colors">
+      <div className="relative bg-[#2a2a2a] rounded-2xl border border-[#3a3a3a] focus-within:border-[var(--primary)] transition-colors shadow-lg shadow-black/20">
         <textarea
           ref={textareaRef}
           value={input}
@@ -39,18 +41,19 @@ export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
           onKeyDown={handleKeyDown}
           placeholder="Message Nexus AI..."
           rows={1}
-          className="w-full bg-transparent text-[#ececec] placeholder-[#888] px-5 py-4 pr-14 resize-none outline-none text-base leading-relaxed"
-          style={{ minHeight: '56px', maxHeight: '200px' }}
+          className="w-full bg-transparent text-white placeholder-[#666] px-5 py-4 pr-14 resize-none outline-none"
+          style={{ fontSize: 'var(--chat-font-size, 16px)' }}
         />
         <div className="absolute right-3 bottom-3 flex items-center gap-1">
           <button
             onClick={handleSubmit}
             disabled={!input.trim() || isLoading}
-            className={`p-2 rounded-full transition-all ${
+            className={`p-2.5 rounded-xl transition-all duration-200 ${
               input.trim() && !isLoading
-                ? 'bg-white text-black hover:bg-gray-200'
-                : 'text-[#666] cursor-not-allowed'
+                ? 'text-white hover:scale-110'
+                : 'text-[#555] cursor-not-allowed'
             }`}
+            style={input.trim() && !isLoading ? { background: 'var(--primary, #7c3aed)' } : {}}
           >
             {isLoading ? (
               <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -65,7 +68,7 @@ export default function ChatInput({ onSend, isLoading }: ChatInputProps) {
           </button>
         </div>
       </div>
-      <p className="text-center text-xs text-[#666] mt-2">Nexus AI can make mistakes. Check important info.</p>
+      <p className="text-center text-[11px] text-[#555] mt-2">Nexus AI can make mistakes. Check important info.</p>
     </div>
   )
 }
