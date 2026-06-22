@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { signup, login } from '../utils/auth'
 
 interface AuthScreenProps {
-  onAuth: (name: string) => void
+  onAuth: () => void
 }
 
 export default function AuthScreen({ onAuth }: AuthScreenProps) {
@@ -23,7 +23,7 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
     if (isLogin) {
       const result = login(email, password)
       if (result.ok && result.name) {
-        onAuth(result.name)
+        onAuth()
       } else {
         setError(result.error || 'Login failed')
       }
@@ -40,7 +40,7 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
       }
       const result = signup(name.trim(), email, password)
       if (result.ok) {
-        onAuth(name.trim())
+        onAuth()
       } else {
         setError(result.error || 'Signup failed')
       }
