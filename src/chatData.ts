@@ -48,13 +48,13 @@ Negative Prompt:
 
 Output the image prompt whenever the user asks for an image.`
 
-const HF_API_KEY = import.meta.env.VITE_HF_API_KEY as string
-const API_URL = 'https://router.huggingface.co/v1/chat/completions'
-const MODEL = 'zai/GLM-5.2'
+const API_KEY = import.meta.env.VITE_AI_API_KEY as string
+const API_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const MODEL = 'google/gemma-4-31b-it:free'
 
 export async function fetchAIResponse(messages: Message[]): Promise<string> {
-  if (!HF_API_KEY) {
-    return 'API key not configured. Please set VITE_HF_API_KEY in your Cloudflare Pages environment variables.'
+  if (!API_KEY) {
+    return 'API key not configured. Please set VITE_AI_API_KEY in your Cloudflare Pages environment variables.'
   }
 
   const formattedMessages = [
@@ -66,8 +66,10 @@ export async function fetchAIResponse(messages: Message[]): Promise<string> {
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${HF_API_KEY}`,
+        'Authorization': `Bearer ${API_KEY}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'Nexus AI',
       },
       body: JSON.stringify({
         model: MODEL,
@@ -80,11 +82,8 @@ export async function fetchAIResponse(messages: Message[]): Promise<string> {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('HF API error:', response.status, errorText)
-      if (response.status === 503) {
-        throw new Error('Model is loading. Please wait a moment and try again.')
-      }
-      throw new Error(`API error ${response.status}: ${errorText}`)
+      console.error('API error:', response.status, errorText)
+      throw new Error(`API error ${response.status}`)
     }
 
     const data = await response.json()
@@ -94,7 +93,7 @@ export async function fetchAIResponse(messages: Message[]): Promise<string> {
     }
 
     console.error('Unexpected response format:', data)
-    return 'I received an unexpected response format. Please try again.'
+    return 'I received an unexpected response. Please try again.'
   } catch (error) {
     console.error('AI fetch failed:', error)
     throw error
