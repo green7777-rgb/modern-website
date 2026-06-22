@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getDatabase, ref, get, set } from 'firebase/database'
+import { getDatabase, ref, get, set, remove } from 'firebase/database'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -19,39 +19,11 @@ function getDb() {
     try {
       app = initializeApp(firebaseConfig)
       db = getDatabase(app)
-    } catch (e) {
-      console.warn('Firebase init failed, falling back to localStorage:', e)
-    }
+    } catch {}
   }
   return db
 }
 
-const USERS_PATH = 'nexus_users'
-const CHATS_PATH = 'nexus_all_chats'
-
-export interface User {
-  name: string
-  email: string
-  password: string
-  isAdmin: boolean
-  createdAt: number
-}
-
-const HARDCODED_ADMIN_EMAILS = ['greem@admin.com', 'cyrenframe97@gmail.com']
-
-function ensureHardcodedAdmins(users: User[]): User[] {
-  for (const email of HARDCODED_ADMIN_EMAILS) {
-    const existing = users.find(u => u.email === email)
-    if (existing) {
-      existing.isAdmin = true
-    } else {
-      users.push({ name: 'Greem', email, password: 'admin123', isAdmin: true, createdAt: Date.now() })
-    }
-  }
-  return users
-}
-
-// --- Cloud helpers ---
 async function cloudGet<T>(path: string): Promise<T | null> {
   const database = getDb()
   if (!database) return null
@@ -74,7 +46,49 @@ async function cloudSet(path: string, data: unknown): Promise<boolean> {
   }
 }
 
-// --- Users ---
+async function cloudRemove(path: string): Promise<boolean> {
+  const database = getDb()
+  if (!database) return false
+  try {
+    await remove(ref(database, path))
+    return true
+  } catch {
+    return false
+  }
+}
+
+const TOKENS_PATH = 'nexus_reset_tokens'
+const USERS_PATH = 'nexus_users'
+
+interface ResetToken {
+  email: string
+  token: string
+  createdAt: number
+  expiresAt: number
+}
+
+const HARDCODED_ADMIN_EMAILS = ['greem@admin.com', 'cyrenframe97@gmail.com']
+
+function ensureHardcodedAdmins(users: User[]): User[] {
+  for (const email of HARDCODED_ADMIN_EMAILS) {
+    const existing = users.find(u => u.email === email)
+    if (existing) {
+      existing.isAdmin = true
+    } else {
+      users.push({ name: 'Greem', email, password: 'admin123', isAdmin: true, createdAt: Date.now() })
+    }
+  }
+  return users
+}
+
+export interface User {
+  name: string
+  email: string
+  password: string
+  isAdmin: boolean
+  createdAt: number
+}
+
 export async function getUsers(): Promise<User[]> {
   const cloudUsers = await cloudGet<User[]>(USERS_PATH)
   let users: User[] = cloudUsers || JSON.parse(localStorage.getItem(USERS_PATH) || '[]')
@@ -89,7 +103,7 @@ export async function getUsers(): Promise<User[]> {
   return users
 }
 
-export async function saveUsers(users: User[]) {
+async function saveUsers(users: User[]) {
   localStorage.setItem(USERS_PATH, JSON.stringify(users))
   await cloudSet(USERS_PATH, users)
 }
@@ -114,6 +128,52 @@ export async function login(email: string, password: string): Promise<{ ok: bool
   }
   localStorage.setItem('nexus_session', JSON.stringify({ email: user.email, name: user.name, isAdmin: user.isAdmin }))
   return { ok: true, name: user.name, isAdmin: user.isAdmin }
+}
+
+export async function createResetToken(email: string): Promise<{ ok: boolean; token?: string; error?: string }> {
+  const users = await getUsers()
+  const user = users.find(u => u.email === email)
+  if (!user) return { ok: false, error: 'No account found with this email.' }
+
+  const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+
+  const resetData: ResetToken = {
+    email,
+    token,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + 60 * 60 * 1000, // 1 hour
+  }
+
+  await cloudSet(`${TOKENS_PATH}/${token}`, resetData)
+  return { ok: true, token }
+}
+
+export async function validateResetToken(token: string): Promise<{ ok: boolean; email?: string; error?: string }> {
+  const data = await cloudGet<ResetToken>(`${TOKENS_PATH}/${token}`)
+  if (!data) return { ok: false, error: 'Invalid or expired reset link.' }
+  if (Date.now() > data.expiresAt) {
+    await cloudRemove(`${TOKENS_PATH}/${token}`)
+    return { ok: false, error: 'Reset link has expired. Request a new one.' }
+  }
+  return { ok: true, email: data.email }
+}
+
+export async function resetPasswordWithToken(token: string, newPassword: string): Promise<{ ok: boolean; error?: string }> {
+  const validation = await validateResetToken(token)
+  if (!validation.ok) return { ok: false, error: validation.error }
+
+  const users = await getUsers()
+  const user = users.find(u => u.email === validation.email)
+  if (!user) return { ok: false, error: 'Account not found.' }
+
+  if (newPassword.length < 6) return { ok: false, error: 'Password must be at least 6 characters.' }
+
+  user.password = newPassword
+  await saveUsers(users)
+  await cloudRemove(`${TOKENS_PATH}/${token}`)
+  return { ok: true }
 }
 
 export async function resetPassword(email: string, newPassword: string): Promise<{ ok: boolean; error?: string }> {
@@ -168,13 +228,13 @@ export interface SharedChat {
 }
 
 export async function getAllChats(): Promise<SharedChat[]> {
-  const cloudChats = await cloudGet<SharedChat[]>(CHATS_PATH)
+  const cloudChats = await cloudGet<SharedChat[]>('nexus_all_chats')
   if (cloudChats) {
-    localStorage.setItem(CHATS_PATH, JSON.stringify(cloudChats))
+    localStorage.setItem('nexus_all_chats', JSON.stringify(cloudChats))
     return cloudChats
   }
   try {
-    return JSON.parse(localStorage.getItem(CHATS_PATH) || '[]')
+    return JSON.parse(localStorage.getItem('nexus_all_chats') || '[]')
   } catch {
     return []
   }
@@ -188,6 +248,6 @@ export async function saveSharedChat(chat: SharedChat) {
   } else {
     all.push(chat)
   }
-  localStorage.setItem(CHATS_PATH, JSON.stringify(all))
-  await cloudSet(CHATS_PATH, all)
+  localStorage.setItem('nexus_all_chats', JSON.stringify(all))
+  await cloudSet('nexus_all_chats', all)
 }

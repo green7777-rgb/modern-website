@@ -5,6 +5,7 @@ import ChatInput from './components/ChatInput'
 import AuthScreen from './components/AuthScreen'
 import SettingsPanel from './components/SettingsPanel'
 import AdminPanel from './components/AdminPanel'
+import ResetPasswordPage from './components/ResetPasswordPage'
 import { fetchAIResponse } from './chatData'
 import { getSession, logout, saveSharedChat } from './utils/auth'
 import { getSettings, applySettings } from './utils/settings'
@@ -17,6 +18,10 @@ function generateId(): string {
 
 function App() {
   const [user, setUser] = useState(() => getSession())
+  const [resetToken, setResetToken] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('token')
+  })
   const [chats, setChats] = useState<Chat[]>([])
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -139,6 +144,18 @@ function App() {
       setIsLoading(false)
     }
   }, [])
+
+  if (resetToken) {
+    return (
+      <ResetPasswordPage
+        token={resetToken}
+        onDone={() => {
+          setResetToken(null)
+          window.history.replaceState({}, '', window.location.pathname)
+        }}
+      />
+    )
+  }
 
   if (!user) {
     return <AuthScreen onAuth={handleAuth} />

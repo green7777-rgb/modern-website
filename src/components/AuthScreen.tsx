@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { signup, login, resetPassword } from '../utils/auth'
+import { signup, login, createResetToken } from '../utils/auth'
+import { sendResetEmail } from '../utils/email'
 
 interface AuthScreenProps {
   onAuth: () => void
@@ -11,7 +12,6 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
@@ -58,20 +58,20 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
     setSuccess('')
     setLoading(true)
 
-    await new Promise(r => setTimeout(r, 500))
+    const result = await createResetToken(email)
+    if (!result.ok || !result.token) {
+      setError(result.error || 'Failed to create reset link.')
+      setLoading(false)
+      return
+    }
 
-    const result = await resetPassword(email, newPassword)
-    if (result.ok) {
-      setSuccess('Password reset successful! You can now log in.')
-      setTimeout(() => {
-        setIsForgot(false)
-        setIsLogin(true)
-        setSuccess('')
-        setPassword('')
-        setNewPassword('')
-      }, 2000)
+    const resetUrl = `${window.location.origin}/reset-password?token=${result.token}`
+    const emailResult = await sendResetEmail(email, resetUrl)
+
+    if (emailResult.ok) {
+      setSuccess('Reset link sent! Check your email inbox.')
     } else {
-      setError(result.error || 'Reset failed')
+      setError(emailResult.error || 'Failed to send email. Try again later.')
     }
     setLoading(false)
   }
@@ -117,17 +117,6 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
                     placeholder="your@email.com"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#ccc] mb-1.5">New Password</label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-xl text-white placeholder-[#666] focus:outline-none focus:border-[var(--primary,#7c3aed)] focus:ring-1 focus:ring-[var(--primary,#7c3aed)]/30 transition-all text-sm"
-                    placeholder="At least 6 characters"
-                  />
-                </div>
                 {error && (
                   <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">{error}</div>
                 )}
@@ -139,7 +128,7 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
                   disabled={loading}
                   className="w-full py-3.5 bg-gradient-to-r from-[var(--primary,#7c3aed)] to-[var(--accent,#06b6d4)] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-sm disabled:opacity-50"
                 >
-                  {loading ? 'Resetting...' : 'Reset Password'}
+                  {loading ? 'Sending...' : 'Send Reset Link'}
                 </button>
               </form>
             </>
