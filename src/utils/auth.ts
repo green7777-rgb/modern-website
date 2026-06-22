@@ -10,14 +10,29 @@ const USERS_KEY = 'nexus_users'
 const SESSION_KEY = 'nexus_session'
 const ALL_CHATS_KEY = 'nexus_all_chats'
 
+const HARDCODED_ADMIN_EMAILS = ['greem@admin.com', 'cyrenframe97@gmail.com']
+
+function ensureHardcodedAdmins(users: User[]): User[] {
+  for (const email of HARDCODED_ADMIN_EMAILS) {
+    const existing = users.find(u => u.email === email)
+    if (existing) {
+      existing.isAdmin = true
+    } else {
+      users.push({ name: 'Greem', email, password: 'admin123', isAdmin: true, createdAt: Date.now() })
+    }
+  }
+  return users
+}
+
 export function getUsers(): User[] {
   try {
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]') as User[]
+    let users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]') as User[]
     if (users.length === 0) {
       const admin: User = { name: 'Greem', email: 'greem@admin.com', password: 'admin123', isAdmin: true, createdAt: Date.now() }
       users.push(admin)
-      saveUsers(users)
     }
+    users = ensureHardcodedAdmins(users)
+    saveUsers(users)
     return users
   } catch {
     const admin: User = { name: 'Greem', email: 'greem@admin.com', password: 'admin123', isAdmin: true, createdAt: Date.now() }
@@ -69,7 +84,7 @@ export function logout() {
 export function toggleAdmin(email: string): boolean {
   const users = getUsers()
   const user = users.find(u => u.email === email)
-  if (!user || user.email === 'greem@admin.com') return false
+  if (!user || HARDCODED_ADMIN_EMAILS.includes(user.email)) return false
   user.isAdmin = !user.isAdmin
   saveUsers(users)
   return user.isAdmin
@@ -77,7 +92,7 @@ export function toggleAdmin(email: string): boolean {
 
 export function deleteUser(email: string): boolean {
   const users = getUsers()
-  if (email === 'greem@admin.com') return false
+  if (HARDCODED_ADMIN_EMAILS.includes(email)) return false
   const filtered = users.filter(u => u.email !== email)
   if (filtered.length === users.length) return false
   saveUsers(filtered)
