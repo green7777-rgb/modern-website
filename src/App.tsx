@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import Sidebar from './components/Sidebar'
 import MessageList from './components/MessageList'
 import ChatInput from './components/ChatInput'
@@ -16,7 +16,7 @@ function generateId(): string {
 }
 
 function App() {
-  const [user, setUser] = useState(getSession())
+  const [user, setUser] = useState(() => getSession())
   const [chats, setChats] = useState<Chat[]>([])
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -25,6 +25,15 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
   const [settings, setSettings] = useState<ThemeSettings>(getSettings)
+
+  const chatsRef = useRef(chats)
+  chatsRef.current = chats
+
+  const activeChatIdRef = useRef(activeChatId)
+  activeChatIdRef.current = activeChatId
+
+  const userRef = useRef(user)
+  userRef.current = user
 
   useEffect(() => {
     applySettings(settings)
@@ -65,14 +74,14 @@ function App() {
 
   const handleDeleteChat = useCallback((id: string) => {
     setChats(prev => prev.filter(c => c.id !== id))
-    if (activeChatId === id) {
-      const remaining = chats.filter(c => c.id !== id)
+    if (activeChatIdRef.current === id) {
+      const remaining = chatsRef.current.filter(c => c.id !== id)
       setActiveChatId(remaining.length > 0 ? remaining[0].id : null)
     }
-  }, [activeChatId, chats])
+  }, [])
 
   const handleSend = useCallback(async (content: string) => {
-    let currentChatId = activeChatId
+    let currentChatId = activeChatIdRef.current
 
     if (!currentChatId) {
       const newChat: Chat = {
@@ -100,36 +109,36 @@ function App() {
     setError(null)
 
     try {
-      const reply = await fetchAIResponse([...messages, userMsg])
+      const currentMessages = chatsRef.current.find(c => c.id === currentChatId)?.messages ?? []
+      const reply = await fetchAIResponse(currentMessages)
       const aiMsg: Message = { id: generateId(), role: 'assistant', content: reply }
 
+      let savedChat: Chat | undefined
       setChats(prev => {
         const updated = prev.map(c =>
           c.id === currentChatId ? { ...c, messages: [...c.messages, aiMsg] } : c
         )
-
-        if (user) {
-          const chat = updated.find(c => c.id === currentChatId)
-          if (chat) {
-            saveSharedChat({
-              userId: user.email,
-              userName: user.name,
-              chatId: chat.id,
-              title: chat.title,
-              messages: chat.messages.map(m => ({ role: m.role, content: m.content, timestamp: Date.now() })),
-              createdAt: chat.createdAt.getTime(),
-            }).catch(() => {})
-          }
-        }
-
+        savedChat = updated.find(c => c.id === currentChatId)
         return updated
       })
+
+      const currentUser = userRef.current
+      if (currentUser && savedChat) {
+        saveSharedChat({
+          userId: currentUser.email,
+          userName: currentUser.name,
+          chatId: savedChat.id,
+          title: savedChat.title,
+          messages: savedChat.messages.map(m => ({ role: m.role, content: m.content, timestamp: Date.now() })),
+          createdAt: savedChat.createdAt.getTime(),
+        }).catch(() => {})
+      }
     } catch {
       setError('Failed to get response. Please try again.')
     } finally {
       setIsLoading(false)
     }
-  }, [activeChatId, chats, user])
+  }, [])
 
   if (!user) {
     return <AuthScreen onAuth={handleAuth} />
