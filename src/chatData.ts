@@ -15,8 +15,9 @@ export function generateId(): string {
   return Math.random().toString(36).substring(2, 15)
 }
 
-const SYSTEM_PROMPT = `You are an advanced multimodal AI assistant capable of:
+const SYSTEM_PROMPT = `You are an advanced multimodal AI assistant called Nexus AI, powered by MiMo V2.5.
 
+You are capable of:
 • Answering questions accurately and intelligently.
 • Writing code, stories, articles, and reports.
 • Solving complex problems step-by-step.
@@ -52,10 +53,9 @@ const API_KEY = import.meta.env.VITE_AI_API_KEY as string
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 const MODELS = [
-  'google/gemma-4-31b-it:free',
+  'xiaomi/mimo-v2.5',
   'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
   'cohere/north-mini-code:free',
-  'poolside/laguna-m.1:free',
 ]
 
 export async function fetchAIResponse(messages: Message[]): Promise<string> {
