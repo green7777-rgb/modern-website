@@ -100,14 +100,12 @@ function App() {
     setError(null)
 
     try {
-      const currentMessages = chats.find(c => c.id === currentChatId)?.messages ?? []
-      const allMessages = [...currentMessages, userMsg]
-      const reply = await fetchAIResponse(allMessages)
+      const reply = await fetchAIResponse([...messages, userMsg])
       const aiMsg: Message = { id: generateId(), role: 'assistant', content: reply }
 
       setChats(prev => {
         const updated = prev.map(c =>
-          c.id === currentChatId ? { ...c, messages: [...c.messages, userMsg, aiMsg] } : c
+          c.id === currentChatId ? { ...c, messages: [...c.messages, aiMsg] } : c
         )
 
         if (user) {
