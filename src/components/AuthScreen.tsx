@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { signup, login } from '../utils/auth'
+import { signup, login, getUsers } from '../utils/auth'
 
 interface AuthScreenProps {
   onAuth: () => void
@@ -7,22 +7,26 @@ interface AuthScreenProps {
 
 export default function AuthScreen({ onAuth }: AuthScreenProps) {
   const [isLogin, setIsLogin] = useState(true)
+  const [isForgot, setIsForgot] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
     setLoading(true)
 
     await new Promise(r => setTimeout(r, 500))
 
     if (isLogin) {
       const result = login(email, password)
-      if (result.ok && result.name) {
+      if (result.ok) {
         onAuth()
       } else {
         setError(result.error || 'Login failed')
@@ -48,6 +52,41 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
     setLoading(false)
   }
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+    setLoading(true)
+
+    await new Promise(r => setTimeout(r, 500))
+
+    const users = getUsers()
+    const user = users.find(u => u.email === email)
+    if (!user) {
+      setError('No account found with this email.')
+      setLoading(false)
+      return
+    }
+
+    if (newPassword.length < 6) {
+      setError('New password must be at least 6 characters')
+      setLoading(false)
+      return
+    }
+
+    user.password = newPassword
+    localStorage.setItem('nexus_users', JSON.stringify(users))
+    setSuccess('Password reset successful! You can now log in.')
+    setTimeout(() => {
+      setIsForgot(false)
+      setIsLogin(true)
+      setSuccess('')
+      setPassword('')
+      setNewPassword('')
+    }, 2000)
+    setLoading(false)
+  }
+
   return (
     <div className="h-screen flex items-center justify-center bg-[#171717] p-4">
       <div className="absolute inset-0 overflow-hidden">
@@ -67,81 +106,142 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
         </div>
 
         <div className="bg-[#232323] rounded-2xl border border-[#333] p-8 shadow-xl">
-          <div className="flex bg-[#1a1a1a] rounded-xl p-1 mb-6">
-            <button
-              onClick={() => { setIsLogin(true); setError('') }}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${isLogin ? 'bg-[#333] text-white shadow' : 'text-[#888] hover:text-white'}`}
-            >
-              Log in
-            </button>
-            <button
-              onClick={() => { setIsLogin(false); setError('') }}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${!isLogin ? 'bg-[#333] text-white shadow' : 'text-[#888] hover:text-white'}`}
-            >
-              Sign up
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div className="animate-fade-in">
-                <label className="block text-sm font-medium text-[#ccc] mb-1.5">Name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-xl text-white placeholder-[#666] focus:outline-none focus:border-[var(--primary,#7c3aed)] focus:ring-1 focus:ring-[var(--primary,#7c3aed)]/30 transition-all text-sm"
-                  placeholder="Your name"
-                />
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-[#ccc] mb-1.5">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-xl text-white placeholder-[#666] focus:outline-none focus:border-[var(--primary,#7c3aed)] focus:ring-1 focus:ring-[var(--primary,#7c3aed)]/30 transition-all text-sm"
-                placeholder="your@email.com"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#ccc] mb-1.5">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-xl text-white placeholder-[#666] focus:outline-none focus:border-[var(--primary,#7c3aed)] focus:ring-1 focus:ring-[var(--primary,#7c3aed)]/30 transition-all text-sm"
-                placeholder={isLogin ? "Your password" : "At least 6 characters"}
-              />
-            </div>
-
-            {error && (
-              <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-[var(--primary,#7c3aed)] to-[var(--accent,#06b6d4)] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          {isForgot ? (
+            <>
+              <div className="flex items-center gap-2 mb-6">
+                <button onClick={() => { setIsForgot(false); setError(''); setSuccess('') }} className="p-2 rounded-lg hover:bg-[#333] text-[#888]">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
-                  {isLogin ? 'Logging in...' : 'Creating account...'}
-                </span>
-              ) : (
-                isLogin ? 'Log in' : 'Create account'
-              )}
-            </button>
-          </form>
+                </button>
+                <h2 className="text-lg font-semibold text-white">Reset Password</h2>
+              </div>
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#ccc] mb-1.5">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-xl text-white placeholder-[#666] focus:outline-none focus:border-[var(--primary,#7c3aed)] focus:ring-1 focus:ring-[var(--primary,#7c3aed)]/30 transition-all text-sm"
+                    placeholder="your@email.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#ccc] mb-1.5">New Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-xl text-white placeholder-[#666] focus:outline-none focus:border-[var(--primary,#7c3aed)] focus:ring-1 focus:ring-[var(--primary,#7c3aed)]/30 transition-all text-sm"
+                    placeholder="At least 6 characters"
+                  />
+                </div>
+                {error && (
+                  <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">{error}</div>
+                )}
+                {success && (
+                  <div className="px-4 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm animate-fade-in">{success}</div>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 bg-gradient-to-r from-[var(--primary,#7c3aed)] to-[var(--accent,#06b6d4)] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-sm disabled:opacity-50"
+                >
+                  {loading ? 'Resetting...' : 'Reset Password'}
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <div className="flex bg-[#1a1a1a] rounded-xl p-1 mb-6">
+                <button
+                  onClick={() => { setIsLogin(true); setError(''); setSuccess('') }}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${isLogin ? 'bg-[#333] text-white shadow' : 'text-[#888] hover:text-white'}`}
+                >
+                  Log in
+                </button>
+                <button
+                  onClick={() => { setIsLogin(false); setError(''); setSuccess('') }}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${!isLogin ? 'bg-[#333] text-white shadow' : 'text-[#888] hover:text-white'}`}
+                >
+                  Sign up
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {!isLogin && (
+                  <div className="animate-fade-in">
+                    <label className="block text-sm font-medium text-[#ccc] mb-1.5">Name</label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-xl text-white placeholder-[#666] focus:outline-none focus:border-[var(--primary,#7c3aed)] focus:ring-1 focus:ring-[var(--primary,#7c3aed)]/30 transition-all text-sm"
+                      placeholder="Your name"
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-[#ccc] mb-1.5">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-xl text-white placeholder-[#666] focus:outline-none focus:border-[var(--primary,#7c3aed)] focus:ring-1 focus:ring-[var(--primary,#7c3aed)]/30 transition-all text-sm"
+                    placeholder="your@email.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#ccc] mb-1.5">Password</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#333] rounded-xl text-white placeholder-[#666] focus:outline-none focus:border-[var(--primary,#7c3aed)] focus:ring-1 focus:ring-[var(--primary,#7c3aed)]/30 transition-all text-sm"
+                    placeholder={isLogin ? "Your password" : "At least 6 characters"}
+                  />
+                </div>
+
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={() => { setIsForgot(true); setError(''); setSuccess('') }}
+                    className="text-xs font-medium hover:underline transition-colors"
+                    style={{ color: 'var(--primary)' }}
+                  >
+                    Forgot password?
+                  </button>
+                )}
+
+                {error && (
+                  <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">{error}</div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 bg-gradient-to-r from-[var(--primary,#7c3aed)] to-[var(--accent,#06b6d4)] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      {isLogin ? 'Logging in...' : 'Creating account...'}
+                    </span>
+                  ) : (
+                    isLogin ? 'Log in' : 'Create account'
+                  )}
+                </button>
+              </form>
+            </>
+          )}
         </div>
 
         <p className="text-center text-xs text-[#666] mt-6">
