@@ -23,18 +23,18 @@ export default function Contact() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20">
           <div>
-            <span className="inline-block text-sm font-semibold tracking-widest uppercase text-primary mb-3">
+            <span className="inline-block text-sm font-semibold tracking-widest uppercase text-violet-600 mb-3">
               Contact Us
             </span>
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 leading-tight">
-              Let&apos;s Build Something{' '}
-              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Great Together
+              Get in{' '}
+              <span className="bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent">
+                Touch
               </span>
             </h2>
             <p className="mt-6 text-lg text-slate-500 leading-relaxed">
-              Ready to start your next project? We&apos;d love to hear from you.
-              Fill out the form and our team will get back to you within 24 hours.
+              Have questions about Nexus AI? Want to integrate it into your workflow?
+              We would love to hear from you.
             </p>
 
             <div className="mt-10 space-y-6">
@@ -45,7 +45,7 @@ export default function Contact() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                   ),
-                  label: 'hello@apexdigital.com',
+                  label: 'hello@nexusai.com',
                 },
                 {
                   icon: (
@@ -53,7 +53,7 @@ export default function Contact() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                   ),
-                  label: '+1 (555) 123-4567',
+                  label: '+1 (555) 987-6543',
                 },
                 {
                   icon: (
@@ -62,11 +62,11 @@ export default function Contact() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                   ),
-                  label: '123 Innovation Ave, San Francisco, CA',
+                  label: 'San Francisco, CA',
                 },
               ].map((item) => (
                 <div key={item.label} className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                  <div className="w-11 h-11 rounded-xl bg-violet-100 flex items-center justify-center text-violet-600 shrink-0">
                     {item.icon}
                   </div>
                   <span className="text-slate-600">{item.label}</span>
@@ -91,7 +91,7 @@ export default function Contact() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all text-sm"
                     placeholder="Your name"
                   />
                 </div>
@@ -105,7 +105,7 @@ export default function Contact() {
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all text-sm"
                     placeholder="your@email.com"
                   />
                 </div>
@@ -120,8 +120,8 @@ export default function Contact() {
                   required
                   value={formData.subject}
                   onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
-                  placeholder="Project inquiry"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all text-sm"
+                  placeholder="How can we help?"
                 />
               </div>
               <div className="mt-5">
@@ -134,19 +134,19 @@ export default function Contact() {
                   rows={5}
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm resize-none"
-                  placeholder="Tell us about your project..."
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all text-sm resize-none"
+                  placeholder="Tell us about your project or question..."
                 />
               </div>
               <button
                 type="submit"
-                className="mt-6 w-full py-3.5 bg-gradient-to-r from-primary to-primary-light text-white font-semibold rounded-xl shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-sm"
+                className="mt-6 w-full py-3.5 bg-gradient-to-r from-violet-600 to-cyan-500 text-white font-semibold rounded-xl shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-sm"
               >
                 {submitted ? 'Message Sent!' : 'Send Message'}
               </button>
               {submitted && (
                 <p className="mt-3 text-center text-sm text-green-600 animate-fade-in">
-                  Thank you! We&apos;ll be in touch soon.
+                  Thank you! We will be in touch soon.
                 </p>
               )}
             </form>
