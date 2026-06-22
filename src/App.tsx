@@ -120,7 +120,7 @@ function App() {
               title: chat.title,
               messages: chat.messages.map(m => ({ role: m.role, content: m.content, timestamp: Date.now() })),
               createdAt: chat.createdAt.getTime(),
-            })
+            }).catch(() => {})
           }
         }
 

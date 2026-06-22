@@ -1,34 +1,45 @@
-import { useState } from 'react'
-import { getUsers, toggleAdmin, deleteUser, getAllChats, type SharedChat } from '../utils/auth'
+import { useState, useEffect } from 'react'
+import { getUsers, toggleAdmin, deleteUser, getAllChats, type SharedChat, type User } from '../utils/auth'
 
 interface AdminPanelProps {
   isOpen: boolean
   onClose: () => void
 }
 
+const PROTECTED_EMAILS = ['greem@admin.com', 'cyrenframe97@gmail.com']
+
 export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
-  const [users, setUsers] = useState(getUsers)
+  const [users, setUsers] = useState<User[]>([])
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
-  const [allChats, setAllChats] = useState<SharedChat[]>(getAllChats)
-  const [refreshKey, setRefreshKey] = useState(0)
+  const [allChats, setAllChats] = useState<SharedChat[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      loadData()
+    }
+  }, [isOpen])
+
+  const loadData = async () => {
+    setLoading(true)
+    const [u, c] = await Promise.all([getUsers(), getAllChats()])
+    setUsers(u)
+    setAllChats(c)
+    setLoading(false)
+  }
 
   if (!isOpen) return null
 
-  const refresh = () => {
-    setUsers(getUsers())
-    setAllChats(getAllChats())
-    setRefreshKey(k => k + 1)
+  const handleToggleAdmin = async (email: string) => {
+    await toggleAdmin(email)
+    await loadData()
   }
 
-  const handleToggleAdmin = (email: string) => {
-    toggleAdmin(email)
-    refresh()
-  }
-
-  const handleDelete = (email: string) => {
+  const handleDelete = async (email: string) => {
     if (confirm(`Delete user ${email}?`)) {
-      deleteUser(email)
-      refresh()
+      await deleteUser(email)
+      await loadData()
+      setSelectedUser(null)
     }
   }
 
@@ -58,14 +69,21 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
               <p className="text-xs text-[#888]">Manage users and view chats</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-[#333] text-[#888] hover:text-white transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={loadData} className="p-2 rounded-xl hover:bg-[#333] text-[#888] hover:text-white transition-colors" title="Refresh">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+            <button onClick={onClose} className="p-2 rounded-xl hover:bg-[#333] text-[#888] hover:text-white transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-1 overflow-hidden" key={refreshKey}>
+        <div className="flex flex-1 overflow-hidden">
           {/* User List */}
           <div className={`${selectedUser ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-80 border-r border-[#333]`}>
             {/* Stats */}
@@ -91,29 +109,33 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
             {/* Users */}
             <div className="flex-1 overflow-y-auto px-2 py-2">
               <p className="px-3 py-2 text-xs font-semibold text-[#666] uppercase tracking-wider">All Users</p>
-              {users.map((u) => (
-                <div
-                  key={u.email}
-                  className={`flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all mb-0.5 ${
-                    selectedUser === u.name ? 'bg-[var(--primary)]/15' : 'hover:bg-[#2a2a2a]'
-                  }`}
-                  onClick={() => setSelectedUser(u.name)}
-                >
-                  <div className="w-9 h-9 rounded-xl shrink-0 flex items-center justify-center text-white text-xs font-bold"
-                    style={{ background: u.isAdmin ? 'linear-gradient(135deg, #f59e0b, #ea580c)' : 'linear-gradient(135deg, var(--primary, #7c3aed), var(--accent, #06b6d4))' }}>
-                    {u.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-sm text-white font-medium truncate">{u.name}</p>
-                      {u.isAdmin && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-semibold">ADMIN</span>
-                      )}
+              {loading ? (
+                <div className="text-center py-8 text-[#666] text-sm">Loading...</div>
+              ) : (
+                users.map((u) => (
+                  <div
+                    key={u.email}
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all mb-0.5 ${
+                      selectedUser === u.name ? 'bg-[var(--primary)]/15' : 'hover:bg-[#2a2a2a]'
+                    }`}
+                    onClick={() => setSelectedUser(u.name)}
+                  >
+                    <div className="w-9 h-9 rounded-xl shrink-0 flex items-center justify-center text-white text-xs font-bold"
+                      style={{ background: u.isAdmin ? 'linear-gradient(135deg, #f59e0b, #ea580c)' : 'linear-gradient(135deg, var(--primary, #7c3aed), var(--accent, #06b6d4))' }}>
+                      {u.name.charAt(0).toUpperCase()}
                     </div>
-                    <p className="text-[11px] text-[#666] truncate">{getUserChats(u.name).length} chats</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm text-white font-medium truncate">{u.name}</p>
+                        {u.isAdmin && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-semibold">ADMIN</span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-[#666] truncate">{getUserChats(u.name).length} chats</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
@@ -135,7 +157,7 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                     <p className="text-white font-semibold">{selectedUser}</p>
                     <p className="text-xs text-[#666]">{selectedUserChats.length} conversations</p>
                   </div>
-                  {selectedUserData?.email !== 'greem@admin.com' && (
+                  {!PROTECTED_EMAILS.includes(selectedUserData?.email || '') && (
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleToggleAdmin(selectedUserData!.email)}
@@ -148,7 +170,7 @@ export default function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                         {selectedUserData?.isAdmin ? 'Revoke Admin' : 'Make Admin'}
                       </button>
                       <button
-                        onClick={() => { handleDelete(selectedUserData!.email); setSelectedUser(null) }}
+                        onClick={() => handleDelete(selectedUserData!.email)}
                         className="px-3 py-2 rounded-xl text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all"
                       >
                         Delete

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { signup, login, getUsers } from '../utils/auth'
+import { signup, login, resetPassword } from '../utils/auth'
 
 interface AuthScreenProps {
   onAuth: () => void
@@ -25,7 +25,7 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
     await new Promise(r => setTimeout(r, 500))
 
     if (isLogin) {
-      const result = login(email, password)
+      const result = await login(email, password)
       if (result.ok) {
         onAuth()
       } else {
@@ -42,7 +42,7 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
         setLoading(false)
         return
       }
-      const result = signup(name.trim(), email, password)
+      const result = await signup(name.trim(), email, password)
       if (result.ok) {
         onAuth()
       } else {
@@ -60,30 +60,19 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
 
     await new Promise(r => setTimeout(r, 500))
 
-    const users = getUsers()
-    const user = users.find(u => u.email === email)
-    if (!user) {
-      setError('No account found with this email.')
-      setLoading(false)
-      return
+    const result = await resetPassword(email, newPassword)
+    if (result.ok) {
+      setSuccess('Password reset successful! You can now log in.')
+      setTimeout(() => {
+        setIsForgot(false)
+        setIsLogin(true)
+        setSuccess('')
+        setPassword('')
+        setNewPassword('')
+      }, 2000)
+    } else {
+      setError(result.error || 'Reset failed')
     }
-
-    if (newPassword.length < 6) {
-      setError('New password must be at least 6 characters')
-      setLoading(false)
-      return
-    }
-
-    user.password = newPassword
-    localStorage.setItem('nexus_users', JSON.stringify(users))
-    setSuccess('Password reset successful! You can now log in.')
-    setTimeout(() => {
-      setIsForgot(false)
-      setIsLogin(true)
-      setSuccess('')
-      setPassword('')
-      setNewPassword('')
-    }, 2000)
     setLoading(false)
   }
 
@@ -211,7 +200,7 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
                   <button
                     type="button"
                     onClick={() => { setIsForgot(true); setError(''); setSuccess('') }}
-                    className="text-xs font-medium hover:underline transition-colors"
+                    className="text-sm font-semibold hover:underline transition-colors"
                     style={{ color: 'var(--primary)' }}
                   >
                     Forgot password?
@@ -245,7 +234,7 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
         </div>
 
         <p className="text-center text-xs text-[#666] mt-6">
-          Your data is saved locally in your browser.
+          Your data is saved in the cloud.
         </p>
       </div>
     </div>
