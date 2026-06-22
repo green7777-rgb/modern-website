@@ -50,7 +50,13 @@ Output the image prompt whenever the user asks for an image.`
 
 const API_KEY = import.meta.env.VITE_AI_API_KEY as string
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const MODEL = 'google/gemma-4-31b-it:free'
+
+const MODELS = [
+  'google/gemma-4-31b-it:free',
+  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+  'cohere/north-mini-code:free',
+  'poolside/laguna-m.1:free',
+]
 
 export async function fetchAIResponse(messages: Message[]): Promise<string> {
   if (!API_KEY) {
@@ -62,40 +68,42 @@ export async function fetchAIResponse(messages: Message[]): Promise<string> {
     ...messages.map(m => ({ role: m.role, content: m.content })),
   ]
 
-  try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': window.location.origin,
-        'X-Title': 'Nexus AI',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: formattedMessages,
-        max_tokens: 2048,
-        temperature: 0.7,
-        top_p: 0.9,
-      }),
-    })
+  for (const model of MODELS) {
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'Nexus AI',
+        },
+        body: JSON.stringify({
+          model,
+          messages: formattedMessages,
+          max_tokens: 2048,
+          temperature: 0.7,
+          top_p: 0.9,
+        }),
+      })
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('API error:', response.status, errorText)
-      throw new Error(`API error ${response.status}`)
+      if (!response.ok) {
+        console.warn(`Model ${model} failed (${response.status}), trying next...`)
+        continue
+      }
+
+      const data = await response.json()
+
+      if (data.choices?.[0]?.message?.content) {
+        return data.choices[0].message.content.trim()
+      }
+
+      continue
+    } catch (error) {
+      console.warn(`Model ${model} error, trying next...`, error)
+      continue
     }
-
-    const data = await response.json()
-
-    if (data.choices?.[0]?.message?.content) {
-      return data.choices[0].message.content.trim()
-    }
-
-    console.error('Unexpected response format:', data)
-    return 'I received an unexpected response. Please try again.'
-  } catch (error) {
-    console.error('AI fetch failed:', error)
-    throw error
   }
+
+  throw new Error('All models are currently unavailable. Please try again in a moment.')
 }
