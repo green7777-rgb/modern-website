@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import Sidebar from './components/Sidebar'
 import MessageList from './components/MessageList'
 import ChatInput from './components/ChatInput'
-import { generateId, getSimulatedResponse } from './chatData'
+import { generateId, fetchAIResponse } from './chatData'
 import type { Chat, Message } from './chatData'
 
 function App() {
@@ -10,6 +10,7 @@ function App() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const activeChat = chats.find(c => c.id === activeChatId)
   const messages = activeChat?.messages ?? []
@@ -24,17 +25,20 @@ function App() {
     setChats(prev => [newChat, ...prev])
     setActiveChatId(newChat.id)
     setSidebarOpen(false)
+    setError(null)
   }, [])
 
   const handleSelectChat = useCallback((id: string) => {
     setActiveChatId(id)
     setSidebarOpen(false)
+    setError(null)
   }, [])
 
   const handleDeleteChat = useCallback((id: string) => {
     setChats(prev => prev.filter(c => c.id !== id))
     if (activeChatId === id) {
-      setActiveChatId(chats.length > 1 ? chats.find(c => c.id !== id)!.id : null)
+      const remaining = chats.filter(c => c.id !== id)
+      setActiveChatId(remaining.length > 0 ? remaining[0].id : null)
     }
   }, [activeChatId, chats])
 
@@ -64,18 +68,31 @@ function App() {
     }))
 
     setIsLoading(true)
+    setError(null)
 
-    await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1200))
+    try {
+      setChats(prev => {
+        const chat = prev.find(c => c.id === currentChatId)
+        if (!chat) return prev
+        return prev
+      })
 
-    setChats(prev => {
-      const chat = prev.find(c => c.id === currentChatId)
-      if (!chat) return prev
-      const aiMsg: Message = { id: generateId(), role: 'assistant', content: getSimulatedResponse(chat.messages) }
-      return prev.map(c => c.id === currentChatId ? { ...c, messages: [...c.messages, aiMsg] } : c)
-    })
+      const currentMessages = chats.find(c => c.id === currentChatId)?.messages ?? []
+      const allMessages = [...currentMessages, userMsg]
 
-    setIsLoading(false)
-  }, [activeChatId])
+      const reply = await fetchAIResponse(allMessages)
+
+      const aiMsg: Message = { id: generateId(), role: 'assistant', content: reply }
+
+      setChats(prev => prev.map(c =>
+        c.id === currentChatId ? { ...c, messages: [...c.messages, aiMsg] } : c
+      ))
+    } catch {
+      setError('Failed to get response. The model may be loading — try again in a moment.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [activeChatId, chats])
 
   return (
     <div className="h-screen flex bg-[#212121]">
@@ -102,7 +119,16 @@ function App() {
           <span className="text-base font-medium text-[#ececec]">
             {activeChat?.title ?? 'Nexus AI'}
           </span>
+          {isLoading && (
+            <span className="text-xs text-[#888] ml-2 animate-pulse">Thinking...</span>
+          )}
         </header>
+
+        {error && (
+          <div className="mx-4 mt-2 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">
+            {error}
+          </div>
+        )}
 
         <MessageList messages={messages} isLoading={isLoading} />
 
