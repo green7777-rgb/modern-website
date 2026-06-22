@@ -15,7 +15,7 @@ export function generateId(): string {
   return Math.random().toString(36).substring(2, 15)
 }
 
-const SYSTEM_PROMPT = `You are an advanced multimodal AI assistant called Nexus AI, powered by MiMo V2.5.
+const SYSTEM_PROMPT = `You are an advanced multimodal AI assistant called Nexus AI, powered by Groq.
 
 You are capable of:
 • Answering questions accurately and intelligently.
@@ -50,12 +50,12 @@ Negative Prompt:
 Output the image prompt whenever the user asks for an image.`
 
 const API_KEY = import.meta.env.VITE_AI_API_KEY as string
-const API_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 const MODELS = [
-  'xiaomi/mimo-v2.5',
-  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
-  'cohere/north-mini-code:free',
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
 ]
 
 export async function fetchAIResponse(messages: Message[]): Promise<string> {
@@ -75,8 +75,6 @@ export async function fetchAIResponse(messages: Message[]): Promise<string> {
         headers: {
           'Authorization': `Bearer ${API_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Nexus AI',
         },
         body: JSON.stringify({
           model,
@@ -88,7 +86,8 @@ export async function fetchAIResponse(messages: Message[]): Promise<string> {
       })
 
       if (!response.ok) {
-        console.warn(`Model ${model} failed (${response.status}), trying next...`)
+        const err = await response.text()
+        console.warn(`Model ${model} failed (${response.status}): ${err}`)
         continue
       }
 
