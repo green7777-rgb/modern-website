@@ -15,6 +15,7 @@ export async function sendResetEmail(toEmail: string, resetLink: string): Promis
       TEMPLATE_ID,
       {
         to_email: toEmail,
+        email: toEmail,
         to_name: toEmail.split('@')[0],
         reset_link: resetLink,
         from_name: 'Nexus AI',
