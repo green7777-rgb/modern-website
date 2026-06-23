@@ -210,7 +210,9 @@ export async function resetPassword(email: string, newPassword: string): Promise
 
 export function getSession(): { name: string; email: string; isAdmin: boolean } | null {
   try {
-    const data = JSON.parse(localStorage.getItem('nexus_session') || 'null')
+    const raw = localStorage.getItem('nexus_session')
+    if (!raw) return null
+    const data = JSON.parse(raw)
     if (data?.email && data?.name) return { ...data, isAdmin: data.isAdmin || false }
     return null
   } catch {
