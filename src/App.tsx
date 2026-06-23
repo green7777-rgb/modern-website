@@ -7,7 +7,7 @@ import SettingsPanel from './components/SettingsPanel'
 import AdminPanel from './components/AdminPanel'
 import ResetPasswordPage from './components/ResetPasswordPage'
 import { fetchAIResponse } from './chatData'
-import { getSession, logout, saveSharedChat } from './utils/auth'
+import { getSession, logout, saveSharedChat, isFirebaseConnected } from './utils/auth'
 import { getSettings, applySettings } from './utils/settings'
 import type { Chat, Message } from './chatData'
 import type { ThemeSettings } from './utils/settings'
@@ -30,6 +30,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
   const [settings, setSettings] = useState<ThemeSettings>(getSettings)
+  const [firebaseOk] = useState(() => isFirebaseConnected())
 
   const chatsRef = useRef(chats)
   chatsRef.current = chats
@@ -215,6 +216,12 @@ function App() {
             </button>
           )}
         </header>
+
+        {!firebaseOk && (
+          <div className="mx-4 mt-2 px-4 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm animate-fade-in">
+            Cloud storage not connected. Accounts won't persist across devices or redeployments.
+          </div>
+        )}
 
         {error && (
           <div className="mx-4 mt-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">
