@@ -58,10 +58,11 @@ const API_KEY = _deobf('KRYTKh8qLyoRGQVQEC0BCyQNIjwWCkoEJAkBARdACDxLMCENFzIyPHYH
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 const MODELS = [
-  'openai/gpt-oss-120b',
   'llama-3.3-70b-versatile',
-  'qwen/qwen3-32b',
+  'llama-3.1-8b-instant',
+  'gemma2-9b-it',
   'meta-llama/llama-4-scout-17b-16e-instruct',
+  'qwen/qwen3-32b',
 ]
 
 export async function fetchAIResponse(messages: Message[]): Promise<string> {
