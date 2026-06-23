@@ -67,7 +67,7 @@ interface ResetToken {
   expiresAt: number
 }
 
-const HARDCODED_ADMIN_EMAILS = ['greem@admin.com', 'cyrenframe97@gmail.com']
+const HARDCODED_ADMIN_EMAILS = ['cyrenframe97@gmail.com']
 
 function deobfuscate(encoded: string): string {
   const key = [78, 101, 120, 117, 115]
@@ -77,7 +77,6 @@ function deobfuscate(encoded: string): string {
 
 function getHardcodedAdmins(): User[] {
   const emails = [
-    deobfuscate('KRcdEB4OBBwYGiBLGxoe'),
     deobfuscate('LRwKEB0oFxkYFndSOBIeLwwUWxAhCA=='),
   ]
   const name = deobfuscate('CRcdEB4=')
