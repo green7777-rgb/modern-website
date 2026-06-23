@@ -49,12 +49,7 @@ Negative Prompt:
 
 Output the image prompt whenever the user asks for an image.`
 
-const _dk = [78, 101, 120, 117, 115]
-function _deobf(e: string): string {
-  const b = atob(e).split('').map(c => c.charCodeAt(0))
-  return b.map((v, i) => String.fromCharCode(v ^ _dk[i % _dk.length])).join('')
-}
-const API_KEY = _deobf('KRYTKh8qLyoRGQVQEC0BCyQNIjwWCkoEJAkBARdACDxLMCENFzIyPHYHNhwUOiQPQxUDATEcSzs=')
+const API_KEY = import.meta.env.VITE_AI_API_KEY as string
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 const MODELS = [

@@ -2,13 +2,13 @@ import { initializeApp } from 'firebase/app'
 import { getDatabase, ref, get, set, remove } from 'firebase/database'
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyCDyAkhkENKrtoGQGsgOs-VQQkFK9aNB8s',
-  authDomain: 'nexus-ai-761d7.firebaseapp.com',
-  databaseURL: 'https://nexus-ai-761d7-default-rtdb.firebaseio.com',
-  projectId: 'nexus-ai-761d7',
-  storageBucket: 'nexus-ai-761d7.firebasestorage.app',
-  messagingSenderId: '277425131206',
-  appId: '1:277425131206:web:940961a9c3a323cebe91c7',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
 let app: ReturnType<typeof initializeApp> | null = null
